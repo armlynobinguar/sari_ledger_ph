@@ -1,0 +1,15 @@
+[package]
+name = "sari_ledger"
+version = "0.1.0"
+edition = "2021"
+description = "On-chain inventory, sales ledger, and revenue-backed micro-loans for Filipino sari-sari stores."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
