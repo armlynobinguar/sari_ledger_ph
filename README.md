@@ -1,118 +1,135 @@
-# Stellar Notes DApp
+# SariLedger
 
-**Stellar Notes DApp** - Blockchain-Based Decentralized Note-Taking System
+On-chain inventory, sales ledger, and revenue-backed micro-loans for Filipino sari-sari stores.
 
-## Project Description
+## Problem
 
-Stellar Notes DApp is a decentralized smart contract solution built on the Stellar blockchain using Soroban SDK. It provides a secure, immutable platform for managing personal notes directly on the blockchain. The contract ensures that your data is stored transparently and is only manageable through predefined smart contract functions, eliminating reliance on centralized database providers.
+Aling Marites, who runs a sari-sari store in Cainta, Rizal earning ~₱25,000/month, tracks sales and "utang" in a pocket notebook — she loses ~20% of potential profit to forgotten credit and stockouts, and has zero documented revenue to qualify for the ₱50,000 BPI loan she needs to expand.
 
-The system allows users to create, view, and delete notes, leveraging the efficiency and security of the Stellar network. Each note is uniquely identified and stored within the contract's instance storage, ensuring data persistence and reliability.
+## Solution
 
-## Project Vision
+SariLedger lets her log every restock and sale via a mobile app that writes to a Soroban contract, building verifiable on-chain revenue history that automatically unlocks USDC-denominated micro-loans from community lenders, settled instantly on Stellar for fractions of a centavo.
 
-Our vision is to revolutionize personal productivity in the digital age by:
+## Timeline
 
-- **Decentralizing Data**: Moving note-taking from centralized servers to a global, distributed blockchain
-- **Ensuring Ownership**: Empowering users to have complete control and ownership over their digital thoughts and information
-- **Guaranteeing Immutability**: Providing a permanent, tamper-proof record of notes that cannot be altered or deleted by third parties
-- **Enhancing Privacy**: Leveraging blockchain security to protect personal information from unauthorized access
-- **Building Trustless Systems**: Creating a platform where data integrity is guaranteed by code, not by company promises
+| Phase | Scope | Duration |
+|---|---|---|
+| Week 1 | Contract logic (inventory, sales ledger, loan eligibility) + tests | 5 days |
+| Week 2 | PWA frontend (record sale / restock / request loan flows) | 5 days |
+| Week 3 | Testnet integration, USDC trustline, offline queue | 3 days |
+| Week 4 | Pilot with 3 sari-sari stores in Metro Manila, demo video | 3 days |
 
-We envision a future where digital information is truly personal and sovereign, empowering individuals with complete autonomy over their digital assets.
+## Stellar Features Used
 
-## Key Features
+- **Soroban smart contracts** — core inventory, sales ledger, and loan eligibility logic
+- **USDC transfers** — loan disbursement and repayment (via trustline)
+- **Trustlines** — USDC on owner and lender accounts
 
-### 1. **Simple Note Creation**
+## Vision and Purpose
 
-- Create notes with just one function call
-- Specify title and content for each note
-- Automated ID generation for unique identification
-- Persistent storage on the Stellar blockchain
+The Philippine sari-sari economy generates ₱2.6T annually and accounts for 30% of retail GDP — yet 99% of its operators (82% of whom are women) remain unbanked because they have no documented revenue. SariLedger turns every sale into a cryptographically verifiable economic signal, creating the first open credit primitive for Southeast Asia's informal retail layer. Once revenue history is composable on-chain, any DeFi lender, insurer, or cooperative can underwrite these micro-entrepreneurs at a cost traditional banks cannot match.
 
-### 2. **Efficient Data Retrieval**
+## Prerequisites
 
-- Fetch all stored notes in a single call
-- Structured data representation for easy frontend integration
-- Quick access to your entire note collection
-- Real-time synchronization with the blockchain state
+- Rust 1.81+ with the `wasm32v1-none` target:
+  ```bash
+  rustup target add wasm32v1-none
+  ```
+- Soroban CLI (a.k.a. `stellar` CLI) v22.0+:
+  ```bash
+  cargo install --locked stellar-cli
+  ```
+- A funded testnet identity:
+  ```bash
+  stellar keys generate --global aling-marites --network testnet --fund
+  ```
 
-### 3. **Secure Deletion**
+## Build
 
-- Remove specific notes using their unique IDs
-- Permanent removal from the contract storage
-- Clean and efficient storage management
-- Immediate update of the note list after deletion
+```bash
+stellar contract build
+```
 
-### 4. **Transparency and Security**
+This produces `target/wasm32v1-none/release/sari_ledger.wasm`.
 
-- View all note activities on the blockchain
-- Blockchain-based verification of all storage actions
-- Immutable records of note creation and deletion
-- Protected against unauthorized modifications
+## Test
 
-### 5. **Stellar Network Integration**
+```bash
+cargo test
+```
 
-- Leverages the high speed and low cost of Stellar
-- Built using the modern Soroban Smart Contract SDK
-- Scalable architecture for growing note collections
-- Interoperable with other Stellar-based services
+All 5 tests should pass (happy path sale, insufficient inventory, multi-sale state, loan within limit, loan over limit).
 
-## Contract Details
+## Deploy to Testnet
 
-- Contract Address: CBLU4IUASQ4WUMOXBFLZRSBBLILGOH33GS4LUPKFBCCCMJCDQNMF7G2M
-  (Screenshot has been removed)
+```bash
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/sari_ledger.wasm \
+  --source aling-marites \
+  --network testnet \
+  --alias sari_ledger
+```
 
-## Future Scope
+Initialize the contract with the store owner's address:
 
-### Short-Term Enhancements
+```bash
+stellar contract invoke \
+  --id sari_ledger \
+  --source aling-marites \
+  --network testnet \
+  -- initialize \
+  --owner $(stellar keys address aling-marites)
+```
 
-1. **Note Encryption**: Support for end-to-end encryption of note content for enhanced privacy
-2. **Category Management**: Add tags and categories to organize notes efficiently
-3. **Rich Text Support**: Extend support beyond plain text to include Markdown and formatted content
-4. **Search Functionality**: Implement advanced search filters for large note collections
+## Sample CLI Invocation (MVP)
 
-### Medium-Term Development
+Record a restock of 50 units of rice at ₱45 per unit:
 
-5. **Collaborative Notes**: Implement multi-signature requirements for shared or collaborative note-taking
-   - Shared access for multiple addresses
-   - Permission-based editing and viewing
-   - Version history tracking
-6. **Notification System**: Off-chain bridge to alert users of new updates or shared notes
-7. **Asset Attachment**: Capability to attach digital assets or tokens to specific notes
-8. **Inter-Contract Integration**: Allow other smart contracts to interact with and store data in the notes contract
+```bash
+stellar contract invoke \
+  --id sari_ledger \
+  --source aling-marites \
+  --network testnet \
+  -- restock \
+  --product_id RICE \
+  --quantity 50 \
+  --cost 45
+```
 
-### Long-Term Vision
+Record a sale of 10 units of rice at ₱55 each:
 
-9. **Cross-Chain Synchronization**: Extend note storage to multiple blockchain networks
-10. **Decentralized UI Hosting**: Host the frontend on IPFS or similar decentralized platforms
-11. **AI-Powered Summarization**: Optional integration with AI to help users summarize their notes
-12. **Privacy Layers**: Implement zero-knowledge proofs for completely private note content
-13. **DAO Governance**: Community-driven protocol improvements and feature prioritization
-14. **Identity Management**: Integration with decentralized identity (DID) systems for user management
+```bash
+stellar contract invoke \
+  --id sari_ledger \
+  --source aling-marites \
+  --network testnet \
+  -- record_sale \
+  --product_id RICE \
+  --quantity 10 \
+  --price 55
+```
 
-### Enterprise Features
+Request a ₱150 loan against documented revenue:
 
-15. **Corporate Documentation**: Adapt the system for secure corporate record-keeping
-16. **Immutable Logging**: Create time-locked logs for audit purposes
-17. **Automated Reporting**: Automatic note triggers for periodic reporting
-18. **Multi-Language Support**: Expand accessibility with internationalization
+```bash
+stellar contract invoke \
+  --id sari_ledger \
+  --source aling-marites \
+  --network testnet \
+  -- request_loan \
+  --amount 150
+```
 
----
+Check revenue:
 
-## Technical Requirements
+```bash
+stellar contract invoke \
+  --id sari_ledger \
+  --source aling-marites \
+  --network testnet \
+  -- get_revenue
+```
 
-- Soroban SDK
-- Rust programming language
-- Stellar blockchain network
+## License
 
-## Getting Started
-
-Deploy the smart contract to Stellar's Soroban network and interact with it using the three main functions:
-
-- `create_note()` - Create a new note with a title and content
-- `get_notes()` - Retrieve all stored notes from the contract
-- `delete_note()` - Remove a specific note by its ID
-
----
-
-**Stellar Notes DApp** - Securing Your Thoughts on the Blockchain
+MIT © 2026 SariLedger contributors
